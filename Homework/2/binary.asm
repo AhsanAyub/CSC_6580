@@ -90,4 +90,3 @@ nyb	db "0000"
 	db "1111"
 space:	db " "
 endl:	db 10
-
