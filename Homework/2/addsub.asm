@@ -1,11 +1,12 @@
 ; @Author: Md. Ahsan Ayub
+; Last edited: 18:06:13 2020-02-10
 ; nasm -f elf64 addsub.asm && gcc -static -o addsub addsub.o
 
 ; This program uses the Linux sys_write system call. See the table located here:
 ; https://blog.rchapman.org/posts/Linux_System_Call_Table_for_x86_64/
 
   global main
-  extern printf
+  ;extern printf
   extern atoi
   extern puts
 
@@ -32,13 +33,68 @@ main:
   mov rdi, rax              ; Storing the second argument in RDI
   xor rax, rax              ; clear eax
 
+  ; Clearing the stack
   pop r14
   pop r13
   pop r12
 
-  ; Default routines provided by Dr. Prowell
+  xor r14, r14              ; clearing r14
+  xor r13, r13              ; clearing r13
+  xor r12, r12              ; clearing r12
+
+  ; Performing addition
+  mov r14, rdi
+  add r14, r15              ; r14 = rdi (1st Arg) + r15 (2nd Arg)
+
+  ; Performing subtraction
+  mov r13, rdi
+  sub r13, r15              ; r13 = rdi (1st Arg) + r15 (2nd Arg)
+
+  ; making a copy of rdi before we jump to alter it
+  mov r12, rdi
+
+  ; ======== Addition ========
+
+  ; Display "Adding" message
+  mov rdi, addMsg
+  call puts
+
+  ; First Argument is to be printed in binary format
+  mov rdi, r12
   call write_binary_qword
 	call write_endl
+
+  ; Second Argument is to be printed in binary format
+  mov rdi, r15
+  call write_binary_qword
+  call write_endl
+
+  ; Result is to be printed in binary format
+  mov rdi, r14
+  call write_binary_qword
+  call write_endl
+
+  ; ======== Subtraction ========
+
+  ; Display "Subtracting" message
+  mov rdi, subMsg
+  call puts
+
+  ; First Argument is to be printed in binary format
+  mov rdi, r12
+  call write_binary_qword
+	call write_endl
+
+  ; Second Argument is to be printed in binary format
+  mov rdi, r15
+  call write_binary_qword
+  call write_endl
+
+  ; Result is to be printed in binary format
+  mov rdi, r13
+  call write_binary_qword
+  call write_endl
+
 	mov rax, 0; The second argument is here.
 	ret
 
@@ -58,7 +114,7 @@ write_binary_qword:
 .top:
   ; Zero out rax.  While assigning to eax would zero the high
   ; bits of rax,ret assigning to ah or al will not.
-  mov rax, errMsg
+  mov rax, 0
 	; Get the next byte to print.  We have arranged to get them
 	; in order from highest order to lowest (big endian).
 	mov al, BYTE [rbp+rcx-9]
@@ -107,13 +163,22 @@ write_endl:
 	syscall
 	ret
 
-	section .data
-
 done:
   pop r14
   pop r13
   pop r12
   ret
+
+	section .data
+
+addMsg:
+  db "Adding:", 0
+
+subMsg:
+  db "Subtracting:", 0
+
+errMsg:
+  db "Expected exactly two integer arguments.", 0
 
 nyb	db "0000"
 	db "0001"
@@ -133,6 +198,3 @@ nyb	db "0000"
 	db "1111"
 space:	db " "
 endl:	db 10
-addMsg: db "Adding", 10
-subMsg: db "Subtracting", 10
-errMsg: db "Expected exactly two integer arguments.", 10
