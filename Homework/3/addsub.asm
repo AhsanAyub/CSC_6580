@@ -1,5 +1,5 @@
 ; @Author: Md. Ahsan Ayub
-; Last edited: 18:06:13 2020-02-14
+; Last edited: 16:55:56 2020-02-14
 ; nasm -f elf64 addsub.asm && gcc -static -o addsub addsub.o
 
 ; This program uses the Linux sys_write system call. See the table located here:
@@ -12,7 +12,6 @@
 	section .text
 
 main:
-
   ; Accessing user input as line arguments
   push r12
   push r13
@@ -58,41 +57,47 @@ main:
   mov rdi, addMsg
   call puts
 
-  ; First Argument is to be printed in binary format
+  ; First Argument is to be printed in hex format
   mov rdi, r12
-  call write_binary_qword
+  ;call write_binary_qword
+  call write_hex_qword
 	call write_endl
 
-  ; Second Argument is to be printed in binary format
-  ;mov rdi, r15
+  ; Second Argument is to be printed in hex format
+  mov rdi, r15
   ;call write_binary_qword
-  ;call write_endl
+  call write_hex_qword
+  call write_endl
 
-  ; Result is to be printed in binary format
-  ;mov rdi, r14
+  ; Result is to be printed in hex format
+  mov rdi, r14
   ;call write_binary_qword
-  ;call write_endl
+  call write_hex_qword
+  call write_endl
 
   ; ======== Subtraction ========
 
   ; Display "Subtracting" message
-  ;mov rdi, subMsg
-  ;call puts
+  mov rdi, subMsg
+  call puts
 
-  ; First Argument is to be printed in binary format
-  ;mov rdi, r12
+  ; First Argument is to be printed in hex format
+  mov rdi, r12
   ;call write_binary_qword
-	;call write_endl
+  call write_hex_qword
+	call write_endl
 
-  ; Second Argument is to be printed in binary format
-  ;mov rdi, r15
+  ; Second Argument is to be printed in hex format
+  mov rdi, r15
   ;call write_binary_qword
-  ;call write_endl
+  call write_hex_qword
+  call write_endl
 
-  ; Result is to be printed in binary format
-  ;mov rdi, r13
+  ; Result is to be printed in hex format
+  mov rdi, r13
   ;call write_binary_qword
-  ;call write_endl
+  call write_hex_qword
+  call write_endl
 
 	mov rax, 0; The second argument is here.
 	ret
@@ -124,24 +129,71 @@ write_binary_qword:
 	and rax, 0xf0
 	shr rax, 2
 	mov rdi, 1
-	lea rsi, [nyb + rax]
+	lea rsi, [nyb_binary + rax]
 	mov rdx, 4
 	mov rax, 1
 	syscall
-	;call write_space
+	call write_space
 	; Restore the byte value.
 	pop rax
 	; Get low nybble and multiply by four.
 	and rax, 0xf
-  shl rax, 2
+	shl rax, 2
 	mov rdi, 1
-	lea rsi, [nyb + rax]
+	lea rsi, [nyb_binary + rax]
 	mov rdx, 4
 	mov rax, 1
 	syscall
-	;call write_space
+	call write_space
 	; Restore the index.
 	pop rcx
+	loop .top
+	leave
+	ret
+
+write_hex_qword:
+  push rbp
+  mov rbp, rsp
+
+  ; Store rdi on the stack.  At this point rdi is occupying
+	; the following addresses: rbp-1 through rbp-8.
+  push rdi
+	mov rcx, 8
+
+.top:
+  ; Zero out rax.  While assigning to eax would zero the high
+  ; bits of rax,ret assigning to ah or al will not.
+  mov rax, 0
+
+  ; Get the next byte to print.  We have arranged to get them
+	; in order from highest order to lowest (big endian).
+	mov al, BYTE [rbp+rcx-9]
+
+  ; Save important data.
+	push rcx
+	push rax
+
+  ; Get high nybble and divide by four.
+	and rax, 0xf0
+	shr rax, 4
+	mov rdi, 1
+	lea rsi, [nyb_hex + rax]
+	mov rdx, 1       ; print one character
+	mov rax, 1       ; rax should be 1 for syscall
+	syscall
+	; Restore the byte value.
+	pop rax
+
+  ; Get low nybble
+	and rax, 0xf
+	mov rdi, 1
+	lea rsi, [nyb_hex + rax]
+	mov rdx, 1     ; print one character
+	mov rax, 1     ; rax should be 1 for syscall
+	syscall
+	; Restore the index.
+	pop rcx
+
   loop .top
   pop rdi
 	leave
@@ -180,7 +232,25 @@ subMsg:
 errMsg:
   db "Expected exactly two integer arguments.", 0
 
-nyb:
+nyb_binary:
+  db "0000"
+  db "0001"
+  db "0010"
+  db "0011"
+  db "0100"
+  db "0101"
+  db "0110"
+  db "0111"
+  db "1000"
+  db "1001"
+  db "1010"
+  db "1011"
+  db "1100"
+  db "1101"
+  db "1110"
+  db "1111"
+
+nyb_hex:
   db '0'
 	db '1'
 	db '2'
