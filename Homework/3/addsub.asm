@@ -6,7 +6,7 @@
 ; https://blog.rchapman.org/posts/Linux_System_Call_Table_for_x86_64/
 
   global main
-  extern atoi
+  extern atol
   extern puts
 
 	section .text
@@ -23,12 +23,12 @@ main:
 
   mov r12, rsi              ; argv
   mov rdi, [r12+16]         ; argv[2]
-  call atoi                 ; The value of the argument is in eax
+  call atol                 ; The value of the argument is in eax
   mov r15, rax              ; Storing the second argument in R15
   xor rax, rax              ; clear eax
 
   mov rdi, [r12+8]          ; argv[1]
-  call atoi                 ; The value of the argument is in eax
+  call atol                 ; The value of the argument is in eax
   mov rdi, rax              ; Storing the second argument in RDI
   xor rax, rax              ; clear eax
 
@@ -47,7 +47,7 @@ main:
 
   ; Performing subtraction
   mov r13, rdi
-  sub r13, r15              ; r13 = rdi (1st Arg) + r15 (2nd Arg)
+  sub r13, r15              ; r13 = rdi (1st Arg) - r15 (2nd Arg)
 
   ; making a copy of rdi before we jump to alter it
   mov r12, rdi
@@ -64,35 +64,35 @@ main:
 	call write_endl
 
   ; Second Argument is to be printed in binary format
-  mov rdi, r15
-  call write_binary_qword
-  call write_endl
+  ;mov rdi, r15
+  ;call write_binary_qword
+  ;call write_endl
 
   ; Result is to be printed in binary format
-  mov rdi, r14
-  call write_binary_qword
-  call write_endl
+  ;mov rdi, r14
+  ;call write_binary_qword
+  ;call write_endl
 
   ; ======== Subtraction ========
 
   ; Display "Subtracting" message
-  mov rdi, subMsg
-  call puts
+  ;mov rdi, subMsg
+  ;call puts
 
   ; First Argument is to be printed in binary format
-  mov rdi, r12
-  call write_binary_qword
-	call write_endl
+  ;mov rdi, r12
+  ;call write_binary_qword
+	;call write_endl
 
   ; Second Argument is to be printed in binary format
-  mov rdi, r15
-  call write_binary_qword
-  call write_endl
+  ;mov rdi, r15
+  ;call write_binary_qword
+  ;call write_endl
 
   ; Result is to be printed in binary format
-  mov rdi, r13
-  call write_binary_qword
-  call write_endl
+  ;mov rdi, r13
+  ;call write_binary_qword
+  ;call write_endl
 
 	mov rax, 0; The second argument is here.
 	ret
@@ -122,26 +122,28 @@ write_binary_qword:
 	push rax
 	; Get high nybble and divide by four.
 	and rax, 0xf0
-	shr rax, 4
+	shr rax, 2
 	mov rdi, 1
 	lea rsi, [nyb + rax]
 	mov rdx, 4
 	mov rax, 1
 	syscall
-	call write_space
+	;call write_space
 	; Restore the byte value.
 	pop rax
 	; Get low nybble and multiply by four.
 	and rax, 0xf
+  shl rax, 2
 	mov rdi, 1
 	lea rsi, [nyb + rax]
 	mov rdx, 4
 	mov rax, 1
 	syscall
-	call write_space
+	;call write_space
 	; Restore the index.
 	pop rcx
-	loop .top
+  loop .top
+  pop rdi
 	leave
 	ret
 
@@ -178,21 +180,22 @@ subMsg:
 errMsg:
   db "Expected exactly two integer arguments.", 0
 
-nyb	db "0"
-	db "1"
-	db "2"
-	db "3"
-	db "4"
-	db "5"
-	db "6"
-	db "7"
-	db "8"
-	db "9"
-	db "A"
-	db "B"
-	db "C"
-	db "D"
-	db "E"
-	db "F"
+nyb:
+  db '0'
+	db '1'
+	db '2'
+	db '3'
+	db '4'
+	db '5'
+	db '6'
+	db '7'
+	db '8'
+	db '9'
+	db 'a'
+	db 'b'
+	db 'c'
+	db 'd'
+	db 'e'
+	db 'f'
 space:	db " "
 endl:	db 10
