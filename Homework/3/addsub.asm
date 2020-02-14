@@ -1,5 +1,5 @@
 ; @Author: Md. Ahsan Ayub
-; Last edited: 18:06:13 2020-02-10
+; Last edited: 18:06:13 2020-02-14
 ; nasm -f elf64 addsub.asm && gcc -static -o addsub addsub.o
 
 ; This program uses the Linux sys_write system call. See the table located here:
@@ -122,7 +122,7 @@ write_binary_qword:
 	push rax
 	; Get high nybble and divide by four.
 	and rax, 0xf0
-	shr rax, 2
+	shr rax, 4
 	mov rdi, 1
 	lea rsi, [nyb + rax]
 	mov rdx, 4
@@ -133,7 +133,6 @@ write_binary_qword:
 	pop rax
 	; Get low nybble and multiply by four.
 	and rax, 0xf
-	shl rax, 2
 	mov rdi, 1
 	lea rsi, [nyb + rax]
 	mov rdx, 4
@@ -179,21 +178,21 @@ subMsg:
 errMsg:
   db "Expected exactly two integer arguments.", 0
 
-nyb	db "0000"
-	db "0001"
-	db "0010"
-	db "0011"
-	db "0100"
-	db "0101"
-	db "0110"
-	db "0111"
-	db "1000"
-	db "1001"
-	db "1010"
-	db "1011"
-	db "1100"
-	db "1101"
-	db "1110"
-	db "1111"
+nyb	db "0"
+	db "1"
+	db "2"
+	db "3"
+	db "4"
+	db "5"
+	db "6"
+	db "7"
+	db "8"
+	db "9"
+	db "A"
+	db "B"
+	db "C"
+	db "D"
+	db "E"
+	db "F"
 space:	db " "
 endl:	db 10
