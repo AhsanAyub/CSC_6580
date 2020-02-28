@@ -1,15 +1,15 @@
 ## Entry Point Disassembly
 
-Take the `find_branches.py` Python code and modify it to disassembly the code starting at the program's entry point.  For this you will need Python 3, the Capstone library, and the pyELFtools library.  Make sure all are installed.
+Take the `find_branches.py` Python code and modify it to disassembly the code starting at the program's entry point. For this you will need Python 3, the Capstone library, and the pyELFtools library. Make sure all are installed.
 
 Hints:
 * The `disasm` method takes two arguments: an array of the `code` to disassemble, which you get from `section.data()`, and an `offset`. The offset is not the offset into the array at which disassembly starts, but is the virtual address of the first byte in the `data` you give it.
-* You will need to do something to the `data` array when you pass it to `disasm` so that disassembly starts at the entry point.
+* You will need to do something to the `data` array when you pass it to `disasm` so that disassembly can start at the entry point.
 * If you want the virtual addresses in your disassembly to be correct, make sure the `offset` argument is the correct virtual address of the first byte.
-* Get the segment's header.  Get the entry point from the ELF file's header.
+* Get the segment's header. Get the entry point from the ELF file's header.
 * Finally, remember that the code segment has a base virtual address where it starts.
 
-Please name your program `entry_point.py`.  The output should be as follows for disassembling the `ls`executable on Ubuntu 19.10.
+Please name your program `entry_point.py`. The output should be as follows for disassembling the `ls`executable on Ubuntu 19.10.
 
 
 ```

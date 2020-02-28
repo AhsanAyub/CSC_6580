@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #
 
+# Importing libraries
 import sys
 from capstone import *
 from elftools.elf.elffile import ELFFile
@@ -39,7 +40,7 @@ def main():
             if not section:
                 print("No .text section found in file; file may be stripped or obfuscated.")
                 exit()
-            code = section.data()
+            code = section.data() # Byte array
 
             # Set up options for disassembly of the text segment.
             md = Cs(arch, bits)
@@ -57,8 +58,6 @@ def main():
 
         if branches:
             print("Contains branches.")
-        print
-
 
 if __name__ == "__main__":
     main()
