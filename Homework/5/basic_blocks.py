@@ -20,21 +20,70 @@ def error(msg):
 
 def do_pass_two(bbs, rad):
     bbs.sort()
-    print(rad.offset)
-    print(bbs[0])
-    #len = len(bbs)
-    flag = 0
-    bbs_index = 0
-    print("block at: " + str(hex(bbs[1])))
-    for i in rad.md.disasm(rad.code, rad.offset):
-        #print("\t%s\t%s" %(i.mnemonic, i.op_str))
-        if(i.address == bbs[0] or flag == 1):
-            flag = 1
+    bbs_index = 1
+    final_index = len(bbs)
+    print("block at: " + str(hex(bbs[0])))
+    #print("block at: " + str(bbs[0]))
+    for i in rad.md.disasm(rad.code, bbs[0]):
+        if(i.address >= bbs[bbs_index]):
+            bbs_index = bbs_index + 1
+            if(bbs_index > final_index):
+                print("next: unknown")
+                exit(1)
+            #print("next: " + str(bbs[bbs_index - 1]))
+            print("next: " + str(hex(bbs[bbs_index - 1])))
+            print("block at: " + str(hex(bbs[bbs_index - 1])))
+            #print("block at: " + str(bbs[bbs_index - 1]))
+
+        # Unconditional jump instruction to break out of loop
+        if ((1 in i.groups) and (7 in i.groups)) and (i.address < bbs[bbs_index] and i.address >= bbs[bbs_index-1]):
+            #print("\t%s:\t%s\t%s" %(i.address, i.mnemonic, i.op_str))
             print("\t%s\t%s" %(i.mnemonic, i.op_str))
-            '''if(i.address == bbs[1]):
-                break
-            else:
-                continue'''
+            bbs_index = bbs_index + 1
+            if(bbs_index > final_index):
+                print("next: unknown")
+                exit(1)
+            '''print("true: " + str(int(i.op_str, 0)))
+            print("false: " + str(bbs[bbs_index - 1]))'''
+            print("true: " + str(i.op_str))
+            print("false: " + str(hex(bbs[bbs_index - 1])))
+            #print("block at: " + str(bbs[bbs_index - 1]))
+            print("block at: " + str(hex(bbs[bbs_index - 1])))
+
+        # Return instruction to break out of loop
+        if (3 in i.groups) and (i.address < bbs[bbs_index] and i.address >= bbs[bbs_index-1]):
+            #print("\t%s:\t%s\t%s" %(i.address, i.mnemonic, i.op_str))
+            print("\t%s\t%s" %(i.mnemonic, i.op_str))
+            bbs_index = bbs_index + 1
+            if(bbs_index > final_index):
+                print("next: unknown")
+                exit(1)
+            #print("next: " + str(bbs[bbs_index - 1]))
+            print("next: " + str(hex(bbs[bbs_index - 1])))
+            print("block at: " + str(hex(bbs[bbs_index - 1])))
+            #print("block at: " + str(bbs[bbs_index - 1]))
+
+        # hlt instruction to break out from basic block
+        if (i.mnemonic == "hlt") and (i.address < bbs[bbs_index] and i.address >= bbs[bbs_index-1]):
+            #print("\t%s:\t%s\t%s" %(i.address, i.mnemonic, i.op_str))
+            print("\t%s\t%s" %(i.mnemonic, i.op_str))
+            bbs_index = bbs_index + 1
+            if(bbs_index >= final_index):
+                print("next: unknown")
+                exit(1)
+            #print("next: " + str(bbs[bbs_index - 1]))
+            print("next: " + str(hex(bbs[bbs_index - 1])))
+            print("block at: " + str(hex(bbs[bbs_index - 1])))
+            #print("block at: " + str(bbs[bbs_index - 1]))
+
+        # Print if the address falls into the space
+        if(i.address < bbs[bbs_index] and i.address >= bbs[bbs_index-1]):
+            #print("\t%s:\t%s\t%s" %(i.address, i.mnemonic, i.op_str))
+            print("\t%s\t%s" %(i.mnemonic, i.op_str))
+
+        #print("\t0x%x:\t%s\t%s" %(i.address, i.mnemonic, i.op_str))
+
+    return bbs_index
 
 def do_pass_one(explore, rad):
     # Track whether we have found branches.
@@ -150,8 +199,9 @@ def find_and_print(filename, explore=[]):
             explore = [entry]
         # Do both passes.
         bbs = do_pass_one(explore, rad)
-        do_pass_two(bbs, rad)
-        print()
+        explored_index = do_pass_two(bbs, rad)
+        if explored_index < len(bbs):
+            print("next: unknown")
 
 def main():
     if len(sys.argv) < 2:
