@@ -43,7 +43,6 @@ class RAD:
     """Provide a random access disassembler (RAD)."""
     def __init__(self, code, arch, bits, offset):
         """Start disassembly of the provided code blob.
-
         Arguments:
             code -- The binary blob of the code.
             arch -- The architecture, as defined by Capstone.
