@@ -32,7 +32,7 @@ def do_pass_two(bbs, rad):
                 exit(1)
             #print("next: " + str(bbs[bbs_index - 1]))
             print("next: " + str(hex(bbs[bbs_index - 1])))
-            print("block at: " + str(hex(bbs[bbs_index - 1])))
+            print("\nblock at: " + str(hex(bbs[bbs_index - 1])))
             #print("block at: " + str(bbs[bbs_index - 1]))
 
         # Unconditional jump instruction to break out of loop
@@ -48,7 +48,7 @@ def do_pass_two(bbs, rad):
             print("true: " + str(i.op_str))
             print("false: " + str(hex(bbs[bbs_index - 1])))
             #print("block at: " + str(bbs[bbs_index - 1]))
-            print("block at: " + str(hex(bbs[bbs_index - 1])))
+            print("\nblock at: " + str(hex(bbs[bbs_index - 1])))
 
         # Return instruction to break out of loop
         if (3 in i.groups) and (i.address < bbs[bbs_index] and i.address >= bbs[bbs_index-1]):
@@ -60,7 +60,7 @@ def do_pass_two(bbs, rad):
                 exit(1)
             #print("next: " + str(bbs[bbs_index - 1]))
             print("next: " + str(hex(bbs[bbs_index - 1])))
-            print("block at: " + str(hex(bbs[bbs_index - 1])))
+            print("\nblock at: " + str(hex(bbs[bbs_index - 1])))
             #print("block at: " + str(bbs[bbs_index - 1]))
 
         # hlt instruction to break out from basic block
@@ -73,13 +73,16 @@ def do_pass_two(bbs, rad):
                 exit(1)
             #print("next: " + str(bbs[bbs_index - 1]))
             print("next: " + str(hex(bbs[bbs_index - 1])))
-            print("block at: " + str(hex(bbs[bbs_index - 1])))
+            print("\nblock at: " + str(hex(bbs[bbs_index - 1])))
             #print("block at: " + str(bbs[bbs_index - 1]))
 
         # Print if the address falls into the space
-        if(i.address < bbs[bbs_index] and i.address >= bbs[bbs_index-1]):
-            #print("\t%s:\t%s\t%s" %(i.address, i.mnemonic, i.op_str))
-            print("\t%s\t%s" %(i.mnemonic, i.op_str))
+        try:
+            if(i.address < bbs[bbs_index] and i.address >= bbs[bbs_index-1]):
+                #print("\t%s:\t%s\t%s" %(i.address, i.mnemonic, i.op_str))
+                print("\t%s\t%s" %(i.mnemonic, i.op_str))
+        except:
+            break
 
         #print("\t0x%x:\t%s\t%s" %(i.address, i.mnemonic, i.op_str))
 
@@ -94,6 +97,7 @@ def do_pass_one(explore, rad):
     for i in rad.md.disasm(rad.code, rad.offset):
         if 1 in i.groups or 7 in i.groups:      # Condition to find branches
             if(len(i.operands) > 0 and is_imm(i.operands[0])):
+            #if(len(i.operands) == 1 and (is_imm(i.operands[0]) or is_reg(i.operands[0]))):
                 current_loc = int(i.op_str, 0)
             else:
                 current_loc = -1
@@ -103,7 +107,7 @@ def do_pass_one(explore, rad):
             if(1 in i.groups and 7 in i.groups):
                 if(next_loc not in explore):
                     explore.append(next_loc)
-                if(current_loc not in explore and current_loc > 0 and rad.in_range(i.address)):
+                if(current_loc not in explore and current_loc > 0 and rad.in_range(current_loc)):
                     explore.append(current_loc)
                 continue
 
@@ -111,13 +115,13 @@ def do_pass_one(explore, rad):
             if(2 in i.groups and 7 in i.groups):
                 if(next_loc not in explore):
                     explore.append(next_loc)
-                if(current_loc not in explore and current_loc > 0 and rad.in_range(i.address)):
+                if(current_loc not in explore and current_loc > 0 and rad.in_range(current_loc)):
                     explore.append(current_loc)
                 continue
 
             # Unconditional jump: target is a leader
             if(1 in i.groups):
-                if(current_loc not in explore and current_loc > 0 and rad.in_range(i.address)):
+                if(current_loc not in explore and current_loc > 0 and rad.in_range(current_loc)):
                     explore.append(current_loc)
                 continue
 
@@ -125,7 +129,7 @@ def do_pass_one(explore, rad):
             if(2 in i.groups):
                 if(next_loc not in explore):
                     explore.append(next_loc)
-                if(current_loc not in explore and current_loc > 0 and rad.in_range(i.address)):
+                if(current_loc not in explore and current_loc > 0 and rad.in_range(current_loc)):
                     explore.append(current_loc)
                 continue
 
@@ -139,18 +143,18 @@ def do_pass_one(explore, rad):
             if(7 in i.groups):
                 if(next_loc not in explore):
                     explore.append(next_loc)
-                if(current_loc not in explore and current_loc > 0 and rad.in_range(i.address)):
+                if(current_loc not in explore and current_loc > 0 and rad.in_range(current_loc)):
                     explore.append(current_loc)
                 continue
 
             branches = True
             count_branch += 1
 
-    if branches:
+    '''if branches:
         print("Contains " + str(count_branch) + " branches.")
 
     if (len(explore) > 1):
-        print("Size of leaders: " + str(len(explore)))
+        print("Size of leaders: " + str(len(explore)))'''
 
     return explore
 
@@ -200,8 +204,11 @@ def find_and_print(filename, explore=[]):
         # Do both passes.
         bbs = do_pass_one(explore, rad)
         explored_index = do_pass_two(bbs, rad)
-        if explored_index < len(bbs):
+        if explored_index <= len(bbs):
             print("next: unknown")
+        '''print(explored_index)
+        print(len(bbs))
+        print(hex(rad.offset + rad.size))'''
 
 def main():
     if len(sys.argv) < 2:
