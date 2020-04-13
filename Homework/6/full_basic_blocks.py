@@ -2,14 +2,11 @@
 #
 
 '''Find and print basic blocks in an executable.
-
 This program reads an ELF file and identifies basic blocks in the .text
 section, starting from the entry point (by default) or from a provided
 list of basic block leaders.
-
 This module checks the DEBUG environment variable for a comma-separated
 list of options.  Do not include whitespace in the DEBUG value.
-
   * address ........ Print the address of each line of disassembly
   * call-end ....... Treat calls as ending the basic block
   * fancy .......... Use specialized code to print operands
@@ -42,7 +39,7 @@ from capstone.x86 import X86_REG_RIP
 ## Note the parentheses so that the instruction can extend over multiple
 ## lines!
 from capstone.x86_const import (X86_OP_MEM, X86_OP_REG, X86_OP_IMM,
-    X86_GRP_JUMP, X86_GRP_CALL, X86_GRP_RET, X86_GRP_INT, 
+    X86_GRP_JUMP, X86_GRP_CALL, X86_GRP_RET, X86_GRP_INT,
     X86_GRP_IRET, X86_GRP_PRIVILEGE, X86_GRP_BRANCH_RELATIVE)
 from elftools.elf.elffile import ELFFile, Section
 from elftools.elf.constants import SH_FLAGS
@@ -155,9 +152,8 @@ class SectionFinder(object):
     searched is the same as the previous section searched (because instructions
     tend to be section-local) we keep track of the last section returned.  If the
     address is not in that section, we go looking.  This is sped up by keeping the
-    section list ordered by incresing address.  Note that if sections overlap this 
+    section list ordered by incresing address.  Note that if sections overlap this
     can cause returned results to be inconsistent.
-
     To use this, make an instance and then `add` sections to it.  To find a section
     for a given virutal address, call `find` with the address.  If None is returned,
     then there is no section correspoding to that address.  No overlap checking is
@@ -176,7 +172,7 @@ class SectionFinder(object):
         base = section.header.sh_addr
         length = section.data_size
         return base <= address and address < base + length
-    
+
     def add(self, section: Section):
         '''Add a section to the list of sections.'''
         # The section just added becomes the first section searched.
@@ -207,7 +203,6 @@ class RAD:
     '''Provide a random access disassembler (RAD).'''
     def __init__(self, sections: SectionFinder, arch, bits):
         '''Start disassembly of the provided code blob.
-
         Arguments:
             sections -- A section finder instance.
             arch -- The architecture, as defined by Capstone.
@@ -235,7 +230,7 @@ class RAD:
             if section is None:
                 # No section contains the address.
                 raise AddressException(address)
-            
+
             # Make sure the section is executable and allocated.
             flags = section.header.sh_flags
             if (flags & SH_FLAGS.SHF_ALLOC) * (flags & SH_FLAGS.SHF_EXECINSTR) == 0:
