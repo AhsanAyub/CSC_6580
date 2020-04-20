@@ -23,8 +23,6 @@ Now that you have the program and some basic data structures, create two new dat
 
 Now for each basic block you found, create a prime (if-then-else or sequence).  Let the exit be label 0. For now treat any block that ends with an unknown destination as an exit.  Keep track of the number of times a label is referenced and, for any label referenced only once (except the entry point and the exit) substitute the label setting block with the corresponding prime.  Be careful to avoid an infinite recursion!
 
-My solution to the previous assignment is attached.  Note that it has been refactored into multiple files.
-
 Example output for an if-then-else containing sequences and label settings.
 
 ```

@@ -72,11 +72,11 @@ class Node(object):
 
 class LabelNode(Node):
     '''A node that holds an assignment to the label and nothing
-    else.
-    '''
+    else.'''
     def __init__(self, address: int):
         '''Make a node setting the label to the given address.'''
         self.address = address
+        self.__node_type = "label"
 
     def __str__(self) -> str:
         '''Generate a string representation.'''
@@ -86,6 +86,10 @@ class LabelNode(Node):
         '''Get the value of the label.'''
         return self.address
 
+    def get_node_type(self) -> str:
+        ''' Return the string as identification '''
+        return self.__node_type
+
     def print(self, indent: int = 0):
         '''Print this node at the given indentation level.'''
         print(' '*indent + f'{LABELVAR} := 0x{self.address:016x}')
@@ -94,7 +98,7 @@ class LabelNode(Node):
 class FunctionNode(Node):
     '''A function node has a single entry and single exit, and
     performs some function.
-    
+
     Essentially a function node holds a basic block with no
     branching or jumps, except possibly an unconditional jump
     at the end.
@@ -104,6 +108,13 @@ class FunctionNode(Node):
         '''Make a function node.'''
         self.bb = bb
         self.next = next
+        # To identify the class
+        self.__node_type = "function"
+        # "Label is the appropirate next value"
+        self.__label = next
+        # Count the number of times it has been references
+        # Defult value is one because it will at least be added in the basic block
+        self.__label_count = 1
 
     def get_basic_block(self) -> BasicBlock:
         return self.bb
@@ -112,9 +123,29 @@ class FunctionNode(Node):
         '''Get the next address in the flow.'''
         return self.next
 
+    def get_node_type(self) -> str:
+        ''' Return the string as identification '''
+        return self.__node_type
+
+    def set_label(self, address: int):
+        ''' Set the starting address of the block to its label '''
+        self.__label = address
+
+    def get_label(self) -> int:
+        ''' Returh the label '''
+        return self.__label
+
+    def increment_label_count(self):
+        ''' Add the label count by 1 '''
+        self.__label_count += 1
+
+    def get_label_count(self) -> int:
+        ''' Return the number of times the label has been referred '''
+        return self.__label_count;
+
     def print(self, indent: int = 0):
         '''Print this node at the given indentation level.'''
-        self.bb.print(indent)
+        self.bb.print(indent + INDENT)
 
 
 class PredicateNode(Node):
@@ -122,14 +153,20 @@ class PredicateNode(Node):
 
     Essentially a predicate node holds a basic block with
     no branching or loops, except for a conditional branch
-    at the final instruction.
-    '''
+    at the final instruction.'''
 
     def __init__(self, bb: BasicBlock, true: int, false: int):
         '''Create a predicate node.'''
         self.bb = bb
         self.true = true
         self.false = false
+        # To identify the class
+        self.__node_type = "predicate"
+        # Label would be the starting address of the basic block at first
+        self.__label = 0
+        # Count the number of times it has been references
+        # Defult value is one because it will at least be added in the basic block
+        self.__label_count = 1
 
     def get_basic_block(self) -> BasicBlock:
         return self.bb
@@ -142,7 +179,122 @@ class PredicateNode(Node):
         '''Get the false branch destination address.'''
         return self.false
 
+    def get_node_type(self) -> str:
+        ''' Return the string as identification '''
+        return self.__node_type
+
+    def set_label(self, address: int):
+        ''' Set the starting address of the block to its label '''
+        self.__label = address
+
+    def get_label(self) -> int:
+        ''' Returh the label '''
+        return self.__label
+
+    def increment_label_count(self):
+        ''' Add the label count by 1 '''
+        self.__label_count += 1
+
+    def get_label_count(self) -> int:
+        ''' Return the number of times the label has been referred '''
+        return self.__label_count;
+
     def print(self, indent: int = 0):
         '''Print this node at the given indentation level.'''
-        print(' '*indent + 'if')
+        #print(' '*indent)
+        self.bb.print(indent + INDENT)
+
+
+class IfThenElseStructure(Node):
+    '''This is a custom classes added in this python file that holds
+    a basic block ending in true / false branching.'''
+
+    '''Make a if-then-else-fi structure.'''
+    def __init__(self, bb: BasicBlock, bb_label: int):
+        '''Create a predicate node.'''
+        self.bb = bb
+        self.bb_label = bb_label
+        self.true_bb = None
+        self.true_bb_label = None
+        self.false_bb = None
+        self.false_bb_label = None
+
+    def get_basic_block(self) -> BasicBlock:
+        ''' Return the main basic block '''
+        return self.bb
+
+    def get_basic_block_label(self) -> int:
+        ''' Return the label of the main basic block '''
+        return self.bb_label
+
+    def set_true_basic_block(self, true_bb: BasicBlock, true_bb_label: int):
+        ''' Initialize the basic block for true condition'''
+        self.true_bb = true_bb
+        self.true_bb_label = true_bb_label
+
+    def get_true_basic_block(self) -> BasicBlock:
+        ''' Return the basic block for true condition'''
+        return self.true_bb
+
+    def get_true_basic_block_label(self) -> int:
+        ''' Return the label of the basic block for true condition'''
+        return self.true_bb_label
+
+    def set_false_basic_block(self, false_bb: BasicBlock, false_bb_label: int):
+        ''' Initialize the basic block for false condition'''
+        self.false_bb = false_bb
+        self.false_bb_label = false_bb_label
+
+    def get_false_basic_block(self) -> BasicBlock:
+        ''' Return the basic block for false condition'''
+        return self.false_bb
+
+    def get_false_basic_block_label(self) -> int:
+        ''' Return the label of the basic block for false condition'''
+        return self.false_bb_label
+
+    def print(self, indent: int = 0):
+        '''Print this node at the given indentation level.'''
+        # Print self basic block frist
+        print("if")
+        self.bb.print(indent + INDENT)
+        print("then")
+        if(self.true_bb != None):
+            # Print the basic block for true statement
+            self.true_bb.print(indent + INDENT)
+            print("\tL = %s" % str(hex(self.true_bb_label)))
+        else:
+            # Destination is unknown
+            print("\texit")
+        print("else")
+        if(self.false_bb != None):
+            # Print the basic block for true statement
+            self.false_bb.print(indent + INDENT)
+            print("\tL = %s" % str(hex(self.false_bb_label)))
+        else:
+            # Destination is unknown
+            print("\texit")
+        print("fi")
+        print()
+
+
+class SequentialBlock(Node):
+    '''This is a custom classes added in this python file that holds
+    a series of (sequential) basic blocks.'''
+
+    '''Make a sequential block structure.'''
+    def __init__(self, bb: BasicBlock, bb_label: int):
+        self.bb = bb
+        self.bb_label = bb_label
+
+    def get_basic_block(self) -> BasicBlock:
+        ''' Return the main basic block '''
+        return self.bb
+
+    def get_basic_block_label(self) -> int:
+        ''' Return the label for main basic block '''
+        return self.bb_label
+
+    def print(self, indent: int = 0):
+        '''Print this node at the given indentation level.'''
         self.bb.print(indent + INDENT)

@@ -13,6 +13,7 @@ with the C runtime).
 '''
 
 from sys import argv
+import sys
 from debug import error, note, debug, DebugOpts
 from disassembler import (RAD, AddressException, NotExecutableException,
     DisassemblerException, OperandTests, InstructionTests, CsInsn)
@@ -120,12 +121,11 @@ def find_and_print(filename: str, explore: List[int] = []):
                 bbs = do_pass_one(explore, rad)
                 nodes = do_pass_two(bbs, rad)
 
-        # Print nodes.
+        # Print nodes which nodes is a dictionary where the key
+        # is the address and the value is the object of custom classes
         for address in nodes:
             nodes[address].print(0)
             print()
-
-    print()
 
 
 def do_pass_one(explore: List[int], rad: RAD) -> Set[int]:
@@ -253,7 +253,7 @@ def do_pass_one(explore: List[int], rad: RAD) -> Set[int]:
 
 def do_pass_two(bbs: Set[int], rad: RAD) -> Dict[int, Node]:
     '''Run pass two of basic block discovery.
-    
+
     This builds the basic blocks, creates function and predicate nodes from them,
     and stores these in a dictionary by their first address.'''
 
@@ -305,6 +305,7 @@ def do_pass_two(bbs: Set[int], rad: RAD) -> Dict[int, Node]:
                     # of this basic block.
                     address = nextaddr
                     run = True
+
 
             elif InstructionTests.is_branch(i) or InstructionTests.is_jump(i):
                 # A branch or jump ends the basic block.
