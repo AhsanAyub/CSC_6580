@@ -13,11 +13,11 @@ with the C runtime).
 '''
 
 from sys import argv
+import sys
 from debug import error, note, debug, DebugOpts
 from disassembler import (RAD, AddressException, NotExecutableException,
     DisassemblerException, OperandTests, InstructionTests, CsInsn)
-from nodes import (FunctionNode, PredicateNode, BasicBlock, Node, SESENode,
-    LabelNode, Sequence, IfThenElse)
+from nodes import FunctionNode, PredicateNode, BasicBlock, Node, IfThenElseStructure, SequentialBlock
 from typing import List, Set, Union, Dict
 
 
@@ -86,6 +86,109 @@ def find_main(rad: RAD, instructions: List[CsInsn]) -> Union[None,int]:
     return main_addr
 
 
+def get_master_nodes(nodes : Dict[int, Node]):
+    '''This function is responsible to iterate through each basic block and create
+    the following two new data structures:
+
+    1. An if-then-else data structure that holds a basic block ending in true / false branching
+    2. A sequence data structure that holds a series of (sequential) basic blocks.
+
+    Both are implemented with classes that are defined (called IfThenElseStructure and
+    SequentialBlock respectively) in the nodes.py file.'''
+
+    # This dictionary will store the starting addresses of basic blocks as keys
+    # and a list as values to store the objects of each class.
+    # After the processing, it will be returned.
+    master_nodes = {}
+
+    for address in nodes:
+        node = nodes[address]
+        # Adding new item in the dictionary
+        master_nodes[address] = [node]
+        # Give label to each basic block
+        if(node.get_label() == 0):
+            # "Label is the appropirate next value"
+            node.set_label(node.get_basic_block().get_next())
+
+        # We need to work with the predicate node first to process the if-then-else structures
+        if (node.get_node_type() == "predicate"):
+            # Create an object for the if-then-else that is initialized upon the predicate node object
+            if_then_else_structure = IfThenElseStructure(node, node.get_label())
+
+            try:
+                # Pointing the basic block that will represent the false condition
+                # Give the pointing node block a label if not intilized
+                if (nodes[node.get_true()].get_label() == 0):
+                    # "Label is the appropirate next value"
+                    nodes[node.get_true()].set_label(nodes[node.get_true()].get_basic_block().get_next())
+                # Increment the label count
+                nodes[node.get_true()].increment_label_count()
+
+                # Store the true basic block information in the object
+                if_then_else_structure.set_true_basic_block(nodes[node.get_true()],
+                                                                nodes[node.get_true()].get_label())
+            except:
+                # This section will be executed if there the next true address is unknown.
+                # No need to do anything here as the true basic block will be pointing at
+                # None by default.
+                pass
+
+            try:
+                # Pointing the basic block that will represent the false condition
+                # Give the pointing node block a label if not intilized
+                if (nodes[node.get_false()].get_label() == 0):
+                    # "Label is the appropirate next value"
+                    nodes[node.get_false()].set_label(nodes[node.get_false()].get_basic_block().get_next())
+                # Increment the label count
+                nodes[node.get_false()].increment_label_count()
+
+                # Store the false basic block information in the object
+                if_then_else_structure.set_false_basic_block(nodes[node.get_false()],
+                                                                nodes[node.get_false()].get_label())
+            except:
+                # This section will be executed if there the next true address is unknown.
+                # No need to do anything here as the false basic block will be pointing at
+                # None by default.
+                pass
+
+            # All the pieces of information are processed and passed in the class object.
+            # Now, we are all set to print as per we are tasked (like the following)
+            '''
+                if
+                    lea rcx, [tax]
+                    jz 0x2132
+                then
+                    mov edi, 1
+                    jmp 0x214f
+                    L = 0x214f
+                else
+                    call 0x215a
+                    L = 0x214f
+                fi
+            '''
+            if_then_else_structure.print(0)
+            # Store the object in the dictionary for futher operation or "package all together"
+            master_nodes[address].append(if_then_else_structure)
+
+    # This is the sectond time we are going to iterate through nodes dictionary
+    # We will be initializing the objects for SequentialBlock classes for all the
+    # function node blocks and the predicate node(s) that has been referenced only once.
+    for address in nodes:
+        node = nodes[address]
+        # Ignoring all the predicate nodes that are referred more than once while
+        # Capturing all the function nodes
+        if((node.get_node_type() == "predicate" and node.get_label_count() == 1)
+            or node.get_node_type()):
+            # Create an object for the sequence data structure that is initialized upon
+            # either the predicate node object (having label count as 1) or function node
+            sequential_block = SequentialBlock(node, node.get_label())
+            # Store the object in the dictionary for futher operation or "package all together"
+            master_nodes[address].append(sequential_block)
+
+    # Return the processed dictionary
+    return master_nodes
+
+
 def find_and_print(filename: str, explore: List[int] = []):
     '''Disassemble the specified file and identify basic blocks, tracing potential
     execution flow.  Addresses of an initial set of addresses to explore can be provided.
@@ -119,17 +222,19 @@ def find_and_print(filename: str, explore: List[int] = []):
                 # Reprocess with the new address.
                 explore = [main_addr]
                 bbs = do_pass_one(explore, rad)
+                # nodes is a dictionary where the key
+                # is the address and the value is the object of custom classes
                 nodes = do_pass_two(bbs, rad)
 
-        # Now create primes.
-        sese = build_primes(nodes)
+    # This is the modified dictionary that holds address as keys
+    # and against each key there is a list.
+    # The values of the list are Node objects (predefined), IfThenElseStructure
+    # objects (newly built), and SequentialBlock objects (newly built)
+    nodes = get_master_nodes(nodes)
 
-        # Print primes.
-        for address in sese:
-            print(hex(address)+":")
-            sese[address].print(0)
-            print()
-
+    # Uncommenting the below section will allow us see the values
+    '''for node in nodes:
+        print(node, nodes[node])'''
 
 def do_pass_one(explore: List[int], rad: RAD) -> Set[int]:
     '''Find basic block leaders in a program.  This returns a list of the
@@ -256,7 +361,7 @@ def do_pass_one(explore: List[int], rad: RAD) -> Set[int]:
 
 def do_pass_two(bbs: Set[int], rad: RAD) -> Dict[int, Node]:
     '''Run pass two of basic block discovery.
-    
+
     This builds the basic blocks, creates function and predicate nodes from them,
     and stores these in a dictionary by their first address.'''
 
@@ -309,9 +414,10 @@ def do_pass_two(bbs: Set[int], rad: RAD) -> Dict[int, Node]:
                     address = nextaddr
                     run = True
 
+
             elif InstructionTests.is_branch(i) or InstructionTests.is_jump(i):
                 # A branch or jump ends the basic block.
-                if i.mnemonic.endswith('jmp'):
+                if InstructionTests.is_jump(i) and not InstructionTests.is_branch(i):
                     if OperandTests.is_imm(i.operands[0]):
                         node = FunctionNode(bb, int(i.op_str,0))
                         nodes[bb.get_address()] = node
@@ -367,72 +473,6 @@ def do_pass_two(bbs: Set[int], rad: RAD) -> Dict[int, Node]:
     note(f"Generated {len(nodes)} nodes")
 
     return nodes
-
-
-def build_primes(nodes: Dict[int, Node]) -> Dict[int, SESENode]:
-    '''Run through the nodes and construct either a sequence or
-    an if-then-else for each one.
-    '''
-
-    sese: Dict[int, SESENode] = {}
-    for address, node in nodes.items():
-        # Two kinds of nodes.
-        if isinstance(node, PredicateNode):
-            # Construct an if-then-else.  The then and else parts
-            # will just be label assignments right now.
-            then_part = LabelNode(node.get_true())
-            else_part = LabelNode(node.get_false())
-            ite = IfThenElse(node, then_part, else_part)
-            sese[address] = ite
-        elif isinstance(node, FunctionNode):
-            # Construct a sequence.  The entire sequence will just
-            # be the function node and the label setting for now.
-            part = LabelNode(node.get_next())
-            seq = Sequence([node, part])
-            sese[address] = seq
-        else:
-            # What is this and how did it get here?
-            pass
-
-    note("Finished prime build")
-    note(f"Built {len(sese)} primes")
-
-    def rewrite_many(node: SESENode, items: Dict[int, SESENode]) -> SESENode:
-        '''Rewrite a node to guarantee that no references to nodes we
-        are replacing remain.'''
-        # This is probably overkill.
-        while True:
-            LabelNode.reset()
-            node = node.replace(items)
-            if not LabelNode.is_dirty():
-                break
-        return node
-
-    # At this point we have built all the primes.  We now need to
-    # do some reductions.  Each prime that is referenced exactly
-    # once can be instantiated.  Make a list of those.
-    items = {}
-    for address in LabelNode.get_singles():
-        if address in sese:
-            items[address] = sese[address]
-            debug(f"Instantiating {hex(address)}")
-            del sese[address]
-
-    # Fully rewrite each item we are going to substitute.
-    for address, node in items.items():
-        items[address] = rewrite_many(node, items)
-
-    # Now perform the replacements.  We don't have to do multiple
-    # replacements here, since we have already "cleaned up" the
-    # replacement nodes.
-    for address, node in sese.items():
-        sese[address] = node.replace(items)
-
-    note("Finished reduction")
-    note(f"Left {len(sese)} primes")
-
-    # Done!
-    return sese
 
 
 if __name__ == "__main__":
