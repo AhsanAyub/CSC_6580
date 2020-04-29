@@ -124,11 +124,52 @@ def find_and_print(filename: str, explore: List[int] = []):
         # Now create primes.
         sese = build_primes(nodes)
 
+        str_parts = ""
+        str_parts_beautified = ""
+        str_build_graph = "digraph \"" + str(argv[1]) + "\" {\n"
+
         # Print primes.
         for address in sese:
             print(hex(address)+":")
+            str_parts += str(hex(address)) + ": "
+            str_parts_beautified += str(hex(address)) + ":\n"
+
+            # Build str_parts
+            for item in sese[address].get_references():
+                str_parts += " " + str(hex(item))
+                str_build_graph += "\t\"" + str(hex(address)) + "\" -> \"" +  str(hex(item)) + "\"\n"
+            str_parts += "\n"
+
             sese[address].print(0)
+            if isinstance(sese[address], IfThenElse):
+                str_parts_beautified += "then:\n"
+                for item in sese[address].get_then_part().get_references():
+                    print('\t', hex(item))
+                    str_parts_beautified += "\t" + str(hex(item)) + "\n"
+
+                str_parts_beautified += "else:\n"
+                for item in sese[address].get_else_part().get_references():
+                    print('\t', hex(item))
+                    str_parts_beautified += "\t" + str(hex(item)) + "\n"
+            else:
+                for item in sese[address].get_references():
+                    print('\t', hex(item))
+                    str_parts_beautified += "\t" + str(hex(item)) + "\n"
+
+            str_parts_beautified += "\n"
+            str_parts += "\n"
+
             print()
+
+        with open("parts.lst", "w") as filehandle:
+            filehandle.write(str_parts)
+
+        with open("parts_beautify.lst", "w") as filehandle:
+            filehandle.write(str_parts_beautified)
+
+        str_build_graph += "}"
+        with open("graph.dot", "w") as filehandle:
+            filehandle.write(str_build_graph)
 
 
 def do_pass_one(explore: List[int], rad: RAD) -> Set[int]:
@@ -256,7 +297,7 @@ def do_pass_one(explore: List[int], rad: RAD) -> Set[int]:
 
 def do_pass_two(bbs: Set[int], rad: RAD) -> Dict[int, Node]:
     '''Run pass two of basic block discovery.
-    
+
     This builds the basic blocks, creates function and predicate nodes from them,
     and stores these in a dictionary by their first address.'''
 
