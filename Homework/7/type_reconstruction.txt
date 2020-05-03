@@ -1,0 +1,123 @@
+CSC 6580 (Spring 2020)
+Optional Assignment X
+
+Student Name: Ayub, Md. Ahsan
+Email: mayub42@students.tntech.edu
+
+--- X ---
+
+Given Program:
+
+0000000000000000 <.text>:
+    0:      endbr64 
+    4:      test    rdi,rdi
+    7:      je      0x1d
+    9:      cmp     DWORD PTR [rdi],esi
+    b:      je      0x20
+    d:      jbe     0x15
+    f:      mov     rdi,QWORD PTR [rdi+0x8]
+    13:     jmp     0x4
+    15:     jae     0x4
+    17:     mov     rdi,QWORD PTR [rdi+0x10]
+    1b:     jmp     0x4
+    1d:     xor     eax,eax
+    1f:     ret    
+    20:     mov     eax,0x1
+    25:     ret
+
+Step 1 - Let's get rid of extraneous addresses and endbr64 instruction (which is not needed for the analysis)
+
+4:  test    rdi,rdi     ; AND operation, but the results of the operation are not saved
+    je      0x1d
+    cmp     DWORD PTR [rdi],esi
+    je      0x20
+    jbe     0x15
+    mov     rdi,QWORD PTR [rdi+0x8]
+    jmp     0x4
+15: jae     0x4
+    mov     rdi,QWORD PTR [rdi+0x10]
+    jmp     0x4
+1d: xor     eax,eax     ; clearing the register
+    ret    
+20: mov     eax,0x1
+    ret
+
+
+Step 2 - Program flow (as per the SLOC number; please use any code editor to preview it nicely)
+
+                phi(rdi__0,rdi__1)     phi(rdi__0,rdi__1)
+                    [ ] -> [40,41]->e  [ ] -> [42,43] -> e
+   phi(rdi__0,rdi__1)|T                 |T
+s -> [ ] -> [30] -> <31> -F-> [32] -> <33> -F-> <34> -F-> [35,36]
+      |                                          |T           |
+      |<------------------ [38,39] <-F- <37> <- [ ]           |
+      |                                  |T phi(rdi__0,rdi__1)|
+      |<------------------------------------------------------|
+
+
+Note: rdi register is predominant and will remain live in every section (4, 15, 1d, and 20).
+
+Step 3 - We can now add the phi functions -
+
+4   mov     rdi,phi(rdi__0,rdi__1)  ; added instruction
+    test    rdi,rdi
+    je      0x1d
+    cmp     DWORD PTR [rdi],esi
+    je      0x20
+    jbe     0x15
+    mov     rdi,QWORD PTR [rdi+0x8]
+    jmp     0x4
+15: mov     rdi,phi(rdi__0,rdi__1)  ; added instruction
+    jae     0x4
+    mov     rdi,QWORD PTR [rdi+0x10]
+    jmp     0x4
+1d: mov     rdi,phi(rdi__0,rdi__1)  ; added instruction
+    xor     eax,eax
+    ret    
+20: mov     rdi,phi(rdi__0,rdi__1)  ; added instruction
+    mov     eax,0x1
+    ret
+
+Step 4 - It's time to convert the program into Single Static Assignment (SSA)
+
+A. Use /d, /w, and /b for double-word (32-bit), word (16-bit), and byte (8-bit) sections of the registers.  
+
+4   mov     rdi,phi(rdi__0,rdi__1)
+    test    rdi,rdi
+    je      0x1d
+    cmp     DWORD PTR [rdi],rsi/d
+    je      0x20
+    jbe     0x15
+    mov     rdi,QWORD PTR [rdi+0x8]
+    jmp     0x4
+15: mov     rdi,phi(rdi__0,rdi__1)
+    jae     0x4
+    mov     rdi,QWORD PTR [rdi+0x10]
+    jmp     0x4
+1d: mov     rdi,phi(rdi__0,rdi__1)
+    xor     rax/d,rax/d
+    ret    
+20: mov     rdi,phi(rdi__0,rdi__1)
+    mov     rax/d,0x1
+    ret
+
+B. Append numbers. The initial values of registers are rbp1, rsp1, etc. Doing this helps avoid a mistake where we gorget to convert something.
+
+4   mov     rdi2,phi(rdi1,rdi6)
+    test    rdi2,rdi2
+    je      0x1d
+    cmp     DWORD PTR [rdi3],rsi1/d
+    je      0x20
+    jbe     0x15
+    mov     rdi,QWORD PTR [rdi+0x8]
+    jmp     0x4
+15: mov     rdi5,phi(rdi4,rdi__1)
+    jae     0x4
+    mov     rdi6,QWORD PTR [rdi5+0x10]
+    jmp     0x4
+1d: mov     rdi3,phi(rdi2,rdi6)
+    xor     rax1/d,rax1/d
+    ret    
+20: mov     rdi4,phi(rdi3,rdi6)
+    mov     rax2/d,0x1
+    ret
