@@ -53,45 +53,45 @@ Let's get rid of extraneous addresses and initial stack alignment operations (fi
         ret
 ```
 
-Note: As push / pop operation does not impact the major oprations of the code, I think, we can exclude both instruction from our assessment. Thus, the final code before we perform program flow is as follows
+Note: As push / pop operation does not impact the major oprations of the code, I think, we can exclude both instruction from our assessment. Thus, the final code before we perform program flow is as follows (added the address to undersand the program flow better)
 
 ```
-        mov   ecx,0x10
-        mov   r14,rdi
-        sub   rsp,0x10
-4012ef: mov   ebx,0x10
-        mov   rax,r14
-        xor   rdx,rdx
-        div   rbx
-        mov   r14,rax
-        mov   al,BYTE PTR [rdx+0x40407d]
-        mov   BYTE PTR [rsp+rcx*1],al
-        loop  4012ef
-        mov   edi,0x1
-        lea   rsi,[rsp+0x1]
-        mov   edx,0x10
-        mov   eax,0x1
-        syscall
-        ret
+4012e1:   mov   ecx,0x10
+4012e8:   mov   r14,rdi
+4012eb:   sub   rsp,0x10
+4012ef:   mov   ebx,0x10
+4012f4:   mov   rax,r14
+4012f7:   xor   rdx,rdx
+4012fa:   div   rbx
+4012fd:   mov   r14,rax
+401300:   mov   al,BYTE PTR [rdx+0x40407d]
+401306:   mov   BYTE PTR [rsp+rcx*1],al
+401309:   loop  4012ef
+40130b:   mov   edi,0x1
+401310:   lea   rsi,[rsp+0x1]
+401315:   mov   edx,0x10
+40131a:   mov   eax,0x1
+40131f:   syscall 
+401324:   ret
 ```
 
 
 ### Step 2
 
-Program flow (as per the SLOC number; please use any code editor to preview it nicely)
+Program flow
 
 ```
-s -> [50,51,52] -> [ ] -> [53,54,55,56,57,58,59] -> <60> --false--> [61,62,63,64,65,66] -> e
-                    |                                |
-                    |<---------true------------------|
-                            phi(r14_0, r14_1)
-                            phi(rcx0, rcx1)
-                            phi(rsp0, rsp1)
+s -> [4012e1-4012eb] -> [ ] -> [4012ef-401306] -> <401309> -F-> [40130b-401324] -> e
+                         |                           |
+                         |<----true------------------|
+                                phi(r14_0, r14_1)
+                                phi(rcx0, rcx1)
+                                phi(rsp0, rsp1)
 ```                            
 
 Note:
 - `r14`, `rcx`, and `rsp` registers values will remain live after we come back to the join point
-- `rax`, `rbx` and `rdx` registers I think will not necessarily be considered live as its values will be reinitialized in each iteration
+- `rax`, `rbx`, and `rdx` registers I think will not necessarily be considered live as its values will be reinitialized in each iteration
 
 
 ### Step 3
@@ -132,9 +132,9 @@ It's time to convert the program into Single Static Assignment (SSA)
         mov   rcx/d,0x10
         mov   r14,rdi
         sub   rsp,0x10
-4012ef: mov   r14, phi(r14__0, r14__1)        ; added instruction
-        mov   rcx, phi(rcx__0, rcx__1)        ; added instruction
-        mov   rsp, phi(rsp__0, rsp__1)        ; added instruction
+4012ef: mov   r14, phi(r14__0, r14__1)
+        mov   rcx, phi(rcx__0, rcx__1)
+        mov   rsp, phi(rsp__0, rsp__1)
         mov   rbx/d,0x10
         mov   rax,r14
         xor   rdx,rdx
@@ -158,7 +158,7 @@ It's time to convert the program into Single Static Assignment (SSA)
         mov   r14_1,rdi1
         sub   rsp1,0x10
 4012ef: mov   r14_2, phi(r14_1, r14_3)
-        mov   rcx2, phi(rcx1, rcx3)
+        mov   rcx2, phi(rcx1, rcx2)
         mov   rsp2, phi(rsp1, rsp3)
         mov   rbx1/d,0x10
         mov   rax1,r14_2

@@ -21,7 +21,26 @@ Given Program:
     25:     ret
 ```
 
+
 ### Step 1
+
+Program flow (as per the SLOC number; please use any code editor to preview it nicely)
+
+```
+                phi(rdi__0,rdi__1)     phi(rdi__0,rdi__1)
+                    [ ] -> [1d,1f]->e  [ ] -> [20,25] -> e
+   phi(rdi__0,rdi__1)|T                 |T
+s -> [ ] -> [4] -> <7> ---F---> [9] -> <b> -F-> <d> --F--> [d,13]
+      |                                          |T           |
+      |<------------------ [17,1b] <-F- <15> <- [ ]           |
+      |                                  |T phi(rdi__0,rdi__1)|
+      |<------------------------------------------------------|
+```
+
+Note: `rdi` register is predominant and will remain live in every section (4, 15, 1d, and 20).
+
+
+### Step 2
 
 Let's get rid of extraneous addresses and endbr64 instruction (which is not needed for the analysis)
 
@@ -41,24 +60,6 @@ Let's get rid of extraneous addresses and endbr64 instruction (which is not need
 20: mov     eax,0x1
     ret
 ```
-
-
-### Step 2
-
-Program flow (as per the SLOC number; please use any code editor to preview it nicely)
-
-```
-                phi(rdi__0,rdi__1)     phi(rdi__0,rdi__1)
-                    [ ] -> [40,41]->e  [ ] -> [42,43] -> e
-   phi(rdi__0,rdi__1)|T                 |T
-s -> [ ] -> [30] -> <31> -F-> [32] -> <33> -F-> <34> -F-> [35,36]
-      |                                          |T           |
-      |<------------------ [38,39] <-F- <37> <- [ ]           |
-      |                                  |T phi(rdi__0,rdi__1)|
-      |<------------------------------------------------------|
-```
-
-Note: `rdi` register is predominant and will remain live in every section (4, 15, 1d, and 20).
 
 
 ### Step 3
@@ -196,28 +197,28 @@ Therefore the solution is:
                 = ptr(struct X)
                 = T(rdi6)
 
-        struct X {struct X*;}
+        struct X {struct X *;}
 ```
 
 Now, the final version is as follows -
 
 ```
-4   mov     rdi2,phi(rdi1,rdi5)         ; T(rdi2) = T(rdi1) = T(rdi6) = struct X*
-    test    rdi2,rdi2                   ; T(rdi2) = struct X*
+4   mov     rdi2,phi(rdi1,rdi5)         ; T(rdi2) = T(rdi1) = T(rdi6) = struct X *
+    test    rdi2,rdi2                   ; T(rdi2) = struct X *
     je      0x1d
-    cmp     DWORD PTR [rdi3],rsi1/d     ; T(rdi3) = T(rsi1/d) = struct X*
+    cmp     DWORD PTR [rdi3],rsi1/d     ; T(rdi3) = T(rsi1/d) = struct X *
     je      0x20
     jbe     0x15
-    mov     rdi7,QWORD PTR [rdi6+0x8]   ; T(rdi6) = ptr(struct X* @8)
+    mov     rdi7,QWORD PTR [rdi6+0x8]   ; T(rdi6) = ptr(struct X * @8)
     jmp     0x4
-15: mov     rdi5,phi(rdi4,rdi7)         ; T(rdi5) = T(rdi4) = T(rdi7) = struct X*
+15: mov     rdi5,phi(rdi4,rdi7)         ; T(rdi5) = T(rdi4) = T(rdi7) = struct X *
     jae     0x4
-    mov     rdi6,QWORD PTR [rdi5+0x10]  ; T(rdi5) = ptr(struct X* @10)
+    mov     rdi6,QWORD PTR [rdi5+0x10]  ; T(rdi5) = ptr(struct X * @10)
     jmp     0x4
-1d: mov     rdi3,phi(rdi2,rdi7)         ; T(rdi3) = T(rdi2) = T(rdi7) = struct X*
+1d: mov     rdi3,phi(rdi2,rdi7)         ; T(rdi3) = T(rdi2) = T(rdi7) = struct X *
     xor     rax2/d,rax1/d               ; T(rax2/d) = T(rax1/d) = int32_t
     ret    
-20: mov     rdi4,phi(rdi3,rdi7)         ; T(rdi4) = T(rdi3) = T(rdi7) = struct X*
+20: mov     rdi4,phi(rdi3,rdi7)         ; T(rdi4) = T(rdi3) = T(rdi7) = struct X *
     mov     rax3/d,0x1                  ; T(rax3/d) = int32_t
     ret
 ```
@@ -234,5 +235,5 @@ Therefore, the type signature for the given program is -
 
 ```
 f: T(rdi1) -> T(rax2/d) OR T(rax3/d)
-int32_t f(struct X* x)
+int32_t     f(struct X * x)
 ```
